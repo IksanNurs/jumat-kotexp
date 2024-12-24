@@ -26,14 +26,6 @@ data class Logbook(
     val id_mahasiswa: Int
 )
 
-data class Review(
-    val id: Int,
-    val rating: Int,
-    val review: String,
-    val id_mahasiswa: Int,
-    val created_at: String
-)
-
 data class Item(
     val id: Int,
     val id_mahasiswa: Int,

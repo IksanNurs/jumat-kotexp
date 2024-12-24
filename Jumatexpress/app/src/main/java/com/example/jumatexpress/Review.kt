@@ -12,10 +12,20 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ReviewScreen(navController: NavController) {
+fun ReviewScreen(
+    navController: NavController,
+    viewModel: ReviewViewModel = viewModel()
+) {
+    val reviews by viewModel.uiState.collectAsState()
+    
+    LaunchedEffect(Unit) {
+        viewModel.getReviews()
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -71,24 +81,17 @@ fun ReviewScreen(navController: NavController) {
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
         ) {
-            item {
-                // Review items
+            items(reviews.size) { index ->
+                val review = reviews[index]
                 ReviewItem(
-                    "Dosen",
-                    "30 Jan, 15:02",
-                    "Laporan ini sudah cukup baik dan komprehensif, terutama pada bagian analisis dan solusi yang disusulkan. Namun, saya menyarankan untuk lebih memperjelas data pendukung di bagian metodologi agar pembaca dapat memahami proses yang dilakukan dengan lebih detail"
-                )
-                
-                ReviewItem(
-                    "Dosen",
-                    "30 Jan, 15:05",
-                    "Beberapa bagian seperti kesimpulan, perlu diperbaiki agar lebih merefleksikan hasil dan pembelajaran yang diperoleh selama praktek kerja"
+                    sender = "Dosen",
+                    date = review.date,
+                    message = review.description
                 )
             }
         }
     }
 }
-
 @Composable
 private fun ReviewItem(sender: String, date: String, message: String) {
     Column(

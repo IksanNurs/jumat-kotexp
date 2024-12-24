@@ -9,6 +9,16 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER,
       },
+      id_mahasiswa: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Users', // Nama tabel referensi
+          key: 'id', // Nama kolom di tabel referensi
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE',
+      },
       id_item: {
         type: Sequelize.INTEGER,
         allowNull: true,
@@ -24,6 +34,11 @@ module.exports = {
         type: Sequelize.TEXT,
         allowNull: true,  // nullable because it can be nil in the struct
       },
+      date: {
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
+        allowNull: false,
+      }
     });
   },
   async down(queryInterface, Sequelize) {

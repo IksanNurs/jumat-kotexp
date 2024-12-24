@@ -9,6 +9,8 @@ import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Query
 import okhttp3.MultipartBody
+import retrofit2.http.DELETE
+import retrofit2.http.Header
 import retrofit2.http.Path
 
 //data class User(val name: String, val email: String, val password: String)
@@ -32,7 +34,13 @@ interface ApiService {
     suspend fun submitReview(@Body review: Review): Response<Review>
 
     @GET("items")
-    suspend fun getItems(): Response<List<Item>>
+    suspend fun getItems(@Header("Authorization") token: String): Response<List<Item>>
+
+    @DELETE("items/{id}")
+    suspend fun deleteItem(
+        @Path("id") id: Int,
+        @Header("Authorization") token: String
+    ): Response<DeleteResponse>
 
     @Multipart
     @POST("items")
@@ -40,9 +48,16 @@ interface ApiService {
         @Part file: MultipartBody.Part
     ): Response<UploadResponse>
 
-    @GET("reviews/{id}")
-    suspend fun getReviews(@Path("id") id: Int): Response<List<ReviewResponse>>
+    @GET("reviews")
+    suspend fun getReviews(@Header("Authorization") token: String): Response<List<Review>>
 }
+
+data class Review(
+    val id: Int,
+    val id_item: Int,
+    val description: String,
+    val date: String
+)
 
 data class UploadResponse(
     val message: String,
@@ -53,4 +68,9 @@ data class ReviewResponse(
     val id: Int,
     val id_item: Int,
     val description: String
+)
+
+data class DeleteResponse(
+    val message: String,
+    val deletedItemId: Int
 )

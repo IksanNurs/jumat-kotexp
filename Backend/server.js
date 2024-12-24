@@ -26,17 +26,11 @@ const storage = multer.diskStorage({
     }
   });
   
-  const fileFilter = (req, file, cb) => {
-    if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
-      cb(null, true);
-    } else {
-      cb(new Error('Hanya file JPG, JPEG, atau PNG yang diizinkan'), false);
-    }
-  };
+
   
   const upload = multer({ 
     storage: storage, 
-    fileFilter: fileFilter 
+     
   });
   
 
@@ -114,7 +108,7 @@ app.post('/login', async (req, res) => {
         console.log('User ID:', user.id);
 
         // Buat JWT token, misalnya dengan durasi 1 jam
-        const token = jwt.sign({ userId: user.id }, 'secret-key', { expiresIn: '1h' });
+        const token = jwt.sign({ userId: user.id }, 'secret-key');
 
         // Login berhasil, kirimkan userId dan token
         res.status(200).json({
@@ -431,6 +425,7 @@ app.post('/items', authenticateToken, upload.single('file'), async (req, res) =>
       const existingItem = await Item.findOne({
         where: {
           id_mahasiswa: user_id,
+          file: req.file ? req.file.filename : null
         },
         atributes: ['id_mahasiswa', 'file'],
       });
@@ -466,53 +461,6 @@ app.post('/items', authenticateToken, upload.single('file'), async (req, res) =>
     }
   });
 
-app.post('/items/revisi', authenticateToken, upload.single('file'), async (req, res) => {
-    const user_id = req.user.userId;
- 
-    try {
-      const user = await User.findByPk(user_id);
-      if (!user) {
-        return res.status(404).json({ message: `User with ID ${user_id} not found` });
-      }
-  
-      // Check if file already exists
-      const existingItem = await Item.findOne({
-        where: {
-          id_mahasiswa: user_id,
-        }
-      });
-  
-      let result;
-      if (existingItem) {
-        // Update existing item
-        result = await existingItem.update({
-          id_mahasiswa: user_id,
-          revisi: req.file ? req.file.filename : null
-        });
-  
-        return res.status(200).json({
-          message: 'File updated successfully',
-          data: result
-        });
-      } else {
-        // Create new item
-        result = await Item.create({
-          id_mahasiswa: user_id,
-          revisi: req.file ? req.file.filename : null
-        });
-  
-        return res.status(201).json({
-          message: 'File created successfully',
-          data: result
-        });
-      }
-  
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'An error occurred while processing the file' });
-    }
-  });
-  
 app.get('/items', authenticateToken, async (req, res) => {
     try {
      const userId =req.user.userId;
@@ -529,14 +477,44 @@ app.get('/items', authenticateToken, async (req, res) => {
     }
   });
 
-  app.get('/reviews/:id', authenticateToken, async (req, res) => {
+  app.delete('/items/:id', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const itemId = req.params.id;
+
+        const item = await Item.findOne({
+            where: { 
+                id: itemId,
+                id_mahasiswa: userId
+            }
+        });
+
+        if (!item) {
+            return res.status(404).json({ error: 'Item tidak ditemukan atau Anda tidak memiliki izin menghapus' });
+        }
+
+        await item.destroy();
+
+        res.status(200).json({ 
+            message: 'Item berhasil dihapus',
+            deletedItemId: itemId 
+        });
+
+    } catch (err) {
+        console.error('Error saat menghapus item:', err);
+        res.status(500).json({ error: 'Terjadi kesalahan server, coba lagi nanti.' });
+    }
+});
+
+
+  app.get('/reviews', authenticateToken, async (req, res) => {
     try {
      const userId = req.user.userId;
       const items = await Review.findAll({
         where: { 
-            id_item:req.params.id,
+            id_mahasiswa:userId,
         },
-        attributes: ['id', 'id_item', 'description'],
+        attributes: ['id', 'id_item', 'description', 'date'],
     });
       res.json(items);
     } catch (error) {

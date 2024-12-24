@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit
 import okhttp3.logging.HttpLoggingInterceptor
 
 object ApiClient {
-    private const val BASE_URL = "http://10.0.2.2:8081/"
+    const val BASE_URL = "http://10.0.2.2:8081/"
 
     val instance: Retrofit by lazy {
         val logging = HttpLoggingInterceptor().apply {

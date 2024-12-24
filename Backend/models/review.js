@@ -43,6 +43,11 @@ module.exports = (sequelize, DataTypes) => {
       revisi: {
         type: DataTypes.TEXT,
         allowNull: true,  // nullable because it can be nil in the struct
+      },
+      date: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW,
+        allowNull: false,
       }
     },
     {

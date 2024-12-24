@@ -1,5 +1,6 @@
 package com.example.jumatexpress
 
+import android.app.Application
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -27,6 +28,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.platform.LocalContext
 import com.example.jumatexpress.UiState.Success
 import com.example.jumatexpress.screen.list.LogbookScreen
 
@@ -56,6 +58,20 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(modifier: Modifier) {
     val navController = rememberNavController()
+  val context = LocalContext.current
+    
+    // Check token on launch
+    LaunchedEffect(Unit) {
+        val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val token = sharedPreferences.getString("jwt_token", null)
+        val isLoggedIn = sharedPreferences.getBoolean("is_logged_in", false)
+        
+        if (token != null && isLoggedIn) {
+            navController.navigate("home") {
+                popUpTo("login") { inclusive = true }
+            }
+        }
+    }
 
     NavHost(navController = navController, startDestination = "login") {
         composable("login") {
@@ -214,18 +230,18 @@ fun LoginScreen(navController: NavController, viewModel: MainViewModel) {
 // Ganti function viewModel() dengan companion object ini
 @Composable
 fun viewModel(): MainViewModel {
+    val context = LocalContext.current
     val factory = remember {
         object : ViewModelProvider.Factory {
             override fun <T : ViewModel> create(modelClass: Class<T>): T {
                 if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
                     @Suppress("UNCHECKED_CAST")
-                    return MainViewModel() as T
+                    return MainViewModel(context.applicationContext as Application) as T
                 }
                 throw IllegalArgumentException("Unknown ViewModel class")
             }
         }
     }
-
     return androidx.lifecycle.viewmodel.compose.viewModel(factory = factory)
 }
 
@@ -300,8 +316,9 @@ fun UserList(users: List<User>) {
     }
 }
 
-class MainViewModel : ViewModel() {
+class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val api = ApiClient.instance.create(ApiService::class.java)
+    private val context = application.applicationContext
 
     // UI state for general users and logbooks
     private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
@@ -377,12 +394,12 @@ class MainViewModel : ViewModel() {
     }
 
     private fun saveToken(token: String) {
-    // Simpan token JWT ke SharedPreferences atau secure storage
-    }
-
-    fun saveToken(context: Context, token: String) {
-    val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-    sharedPreferences.edit().putString("jwt_token", token).apply()
+        val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        with(sharedPreferences.edit()) {
+            putString("jwt_token", token)
+            putBoolean("is_logged_in", true)
+            apply()
+        }
     }
 
     // Fetch logbooks by student ID
@@ -405,18 +422,25 @@ class MainViewModel : ViewModel() {
             }
         }
     }
+
+    // Update the viewModel() function to include Application
+    @Composable
+    fun viewModel(): MainViewModel {
+        val context = LocalContext.current
+        val factory = remember {
+            object : ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
+                        @Suppress("UNCHECKED_CAST")
+                        return MainViewModel(context.applicationContext as Application) as T
+                    }
+                    throw IllegalArgumentException("Unknown ViewModel class")
+                }
+            }
+        }
+        return androidx.lifecycle.viewmodel.compose.viewModel(factory = factory)
+    }
 }
-
-
-//KEDUA KODINGAN INI DALAM BLOK MAINVIEWMODEL TADI YA
-//private fun saveToken(token: String) {
-//    // Simpan token JWT ke SharedPreferences atau secure storage
-//}
-//
-//fun saveToken(context: Context, token: String) {
-//    val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-//    sharedPreferences.edit().putString("jwt_token", token).apply()
-//}
 
 @Preview(showBackground = true)
 @Composable
@@ -426,35 +450,6 @@ fun PreviewMainScreen() {
         MainScreen(modifier = Modifier.padding(16.dp))
     }
 }
-
-//class LogbookViewModel : ViewModel() {
-//    private val _logbooks = MutableLiveData<List<Logbook>>()
-//    val logbooks: LiveData<List<Logbook>> = _logbooks
-//
-//    private val _uiState = MutableLiveData<UiState>()
-//    val uiState: LiveData<UiState> = _uiState
-//
-//    fun fetchLogbooks(idMahasiswa: Int) {
-//        viewModelScope.launch {
-//            _uiState.value = UiState.Loading
-//            try {
-//                val response = ApiClient.instance.create(ApiService::class.java)
-//                    .getLogbooks(idMahasiswa)
-//
-//                if (response.isSuccessful) {
-//                    response.body()?.let {
-//                        _logbooks.value = it
-//                        _uiState.value = UiState.Successfull
-//                    }
-//                } else {
-//                    _uiState.value = UiState.Error("Failed: ${response.message()}")
-//                }
-//            } catch (e: Exception) {
-//                _uiState.value = UiState.Error("Error: ${e.localizedMessage}")
-//            }
-//        }
-//    }
-//}
 
 @Composable
 fun LogbookScreenWrapper(
@@ -474,6 +469,5 @@ fun LogbookScreenWrapper(
         onItemClick = onItemClick
     )
 }
-
 
 //DONE SAMPAI HOME DLU YA GES YA
